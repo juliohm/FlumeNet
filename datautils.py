@@ -1,6 +1,9 @@
 import numpy as np
 from os import listdir, path
 from imageio import imread
+
+import torch
+from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
 class FlumeData(Dataset):
@@ -70,3 +73,19 @@ def dataloader(dirs, nframes=2, augment=True, **kwargs):
     """
     rundirs = sorted([path.join(dirs, d) for d in listdir(dirs)]) if type(dirs) is str else dirs
     return DataLoader(MixedFlumeData(rundirs, nframes, augment), **kwargs)
+
+def splitXY(batch, pinds, finds):
+    """
+    Splits batch of examples into X representing frames in the past
+    and Y representing frames in the future.
+
+    Args:
+        pinds: indices of frames in the past to stack as features (e.g. range(T))
+        finds: indices of frames in the future to stack as labels (e.g. [T])
+    """
+    X = torch.cat([batch[t] for t in pinds], 1)
+    Y = torch.cat([batch[t] for t in finds], 1)
+    X = Variable(X, requires_grad=False)
+    Y = Variable(Y, requires_grad=False)
+
+    return X, Y
