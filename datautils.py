@@ -11,9 +11,10 @@ class FlumeData(Dataset):
         rundir:  directory containing run images
         nframes: number of frames per training example
     """
-    def __init__(self, rundir, nframes=2):
+    def __init__(self, rundir, nframes=2, augment=True):
         self.rundir = rundir
         self.nframes = nframes
+        self.augment = augment
         self.filenames = sorted(listdir(rundir))
 
     def __len__(self):
@@ -24,8 +25,13 @@ class FlumeData(Dataset):
         for i in range(ind, ind + self.nframes):
             img = np.asarray(imread(path.join(self.rundir, self.filenames[i])))
             img = img if img.ndim == 3 else img[...,np.newaxis]
-            img = np.float32(np.transpose(img) / 255)
+            img = np.float32(np.transpose(img, [2, 0, 1]) / 255)
             imgs.append(img)
+
+        if self.augment and np.random.rand() > 0.5:
+            # flip images horizontaly at random
+            imgs = [img[:,:,::-1].copy() for img in imgs]
+
         return imgs
 
 class MixedFlumeData(Dataset):
@@ -36,9 +42,9 @@ class MixedFlumeData(Dataset):
         rundirs: directories containing run images
         nframes: number of frames per training example
     """
-    def __init__(self, rundirs, nframes=2):
+    def __init__(self, rundirs, nframes=2, augment=True):
         self.nframes = nframes
-        self.datasets = [FlumeData(rundir, nframes) for rundir in rundirs]
+        self.datasets = [FlumeData(rundir, nframes, augment) for rundir in rundirs]
 
     def __len__(self):
         return sum([len(d) for d in self.datasets])
@@ -51,7 +57,7 @@ class MixedFlumeData(Dataset):
                 return d[ind - N]
             N += n
 
-def dataloader(dirs, nframes=2, **kwargs):
+def dataloader(dirs, nframes=2, augment=True, **kwargs):
     """
     Create Torch DataLoader for datasets in separate directories.
 
@@ -63,4 +69,4 @@ def dataloader(dirs, nframes=2, **kwargs):
         kwargs: keyword arguments for Torch DataLoader (e.g. batch_size)
     """
     rundirs = sorted([path.join(dirs, d) for d in listdir(dirs)]) if type(dirs) is str else dirs
-    return DataLoader(MixedFlumeData(rundirs, nframes), **kwargs)
+    return DataLoader(MixedFlumeData(rundirs, nframes, augment), **kwargs)
