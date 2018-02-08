@@ -18,3 +18,6 @@ class CodecNet(Module):
 
     def forward(self, x):
         return self.model(x)
+
+    def name(self):
+        return self.__class__.__name__
