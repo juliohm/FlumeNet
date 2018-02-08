@@ -1,5 +1,5 @@
 from os.path import exists
-from datautils import dataloader, splitXY
+from datautils import loadimages, splitXY
 from torch.optim import Adam
 from tqdm import tqdm
 
@@ -38,7 +38,7 @@ class VideoGenProblem(object):
     def channels(self):
         return 3 if self.cspace.upper() == "RGB" else 1
 
-    def train(self, model, loss_fn, hyperparams):
+    def solve(self, model, loss_fn, hyperparams):
         # retrieve prediction scheme (past and future frames)
         pinds, finds = self.predictscheme()
 
@@ -48,8 +48,11 @@ class VideoGenProblem(object):
         bsize  = hyperparams["bsize"]
 
         # load problem data from disk
-        traindata = dataloader(self.traindirs, nframes=self.horizon(), batch_size=bsize)
-        devdata   = dataloader(self.devdirs, nframes=self.horizon(), batch_size=bsize)
+        traindata = loadimages(self.traindirs, nframes=self.horizon(), batch_size=bsize)
+        devdata   = loadimages(self.devdirs, nframes=self.horizon(), batch_size=bsize)
+
+        # cycle the dev set with an iterator
+        deviter = iter(devdata)
 
         # choose Adam as the optimizer
         optimizer = Adam(model.parameters(), lr=lr)
@@ -77,12 +80,24 @@ class VideoGenProblem(object):
                 Yhat = model(X)
 
                 # compute loss
-                yhat = Yhat.view(Yhat.size(0), -1)
                 y    = Y.view(Y.size(0), -1)
+                yhat = Yhat.view(Yhat.size(0), -1)
                 loss = loss_fn(yhat, y)
+
+                # do the same for dev set
+                devbatch = next(deviter, None)
+                if devbatch is None:
+                    deviter = iter(devdata)
+                    devbatch = next(deviter)
+                Xdev, Ydev = splitXY(devbatch, pinds, finds)
+                Yhatdev = model(Xdev)
+                ydev = Ydev.view(Ydev.size(0), -1)
+                yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
+                lossdev = loss_fn(yhatdev, ydev)
 
                 # update TensorBoard summary
                 writer.add_scalar("loss/train", loss, iteration)
+                writer.add_scalar("loss/dev", lossdev, iteration)
                 if iteration % 10 == 0:
                     truegrid = vutils.make_grid(Y.data, normalize=True, scale_each=True)
                     predgrid = vutils.make_grid(Yhat.data, normalize=True, scale_each=True)
@@ -100,9 +115,11 @@ class VideoGenProblem(object):
                 optimizer.step()
 
                 # update progress bar
-                progress.set_postfix(loss="{:05.3f}".format(loss.data.numpy()[0]))
+                lossval = loss.data.numpy()[0]
+                lossdevval = lossdev.data.numpy()[0]
+                progress.set_postfix(loss="{:05.3f}".format(lossval), lossdev="{:05.3f}".format(lossdevval))
                 progress.update()
 
         writer.close()
 
-        return loss.data.numpy()[0]
+        return lossval, lossdevval

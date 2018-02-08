@@ -2,7 +2,7 @@ from problems import VideoGenProblem
 from netmodels import CodecNet
 from torch.nn import MSELoss, BCEWithLogitsLoss
 
-problem = VideoGenProblem("data/rgb", "data/rgb", cspace="RGB")
+problem = VideoGenProblem("data/rgb", ["data/rgb/Run 3"], cspace="RGB")
 
 model = CodecNet(problem.pastlen()*problem.channels(),
                  problem.futurelen()*problem.channels())
@@ -15,4 +15,4 @@ hyperparams = {
     "bsize": 64
 }
 
-loss = problem.train(model, loss_fn, hyperparams)
+loss = problem.solve(model, loss_fn, hyperparams)

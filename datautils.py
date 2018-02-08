@@ -60,7 +60,7 @@ class MixedFlumeData(Dataset):
                 return d[ind - N]
             N += n
 
-def dataloader(dirs, nframes=2, augment=True, **kwargs):
+def loadimages(dirs, nframes=2, augment=True, **kwargs):
     """
     Create Torch DataLoader for datasets in separate directories.
 
@@ -72,7 +72,8 @@ def dataloader(dirs, nframes=2, augment=True, **kwargs):
         kwargs: keyword arguments for Torch DataLoader (e.g. batch_size)
     """
     rundirs = sorted([path.join(dirs, d) for d in listdir(dirs)]) if type(dirs) is str else dirs
-    return DataLoader(MixedFlumeData(rundirs, nframes, augment), **kwargs)
+    dataset = MixedFlumeData(rundirs, nframes, augment)
+    return DataLoader(dataset, **kwargs)
 
 def splitXY(batch, pinds, finds):
     """
