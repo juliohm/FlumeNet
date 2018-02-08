@@ -1,6 +1,7 @@
 from os.path import exists
 from datautils import dataloader, splitXY
 from torch.optim import Adam
+from tqdm import tqdm
 
 # TensorBoard imports
 from tensorboardX import SummaryWriter
@@ -62,6 +63,8 @@ class VideoGenProblem(object):
 
         writer = SummaryWriter(dirname)
 
+        progress = tqdm(total=epochs*len(traindata))
+
         for epoch in range(epochs):
             for (iteration, batch) in enumerate(traindata):
                 # features and targets
@@ -95,6 +98,10 @@ class VideoGenProblem(object):
 
                 # update parameters
                 optimizer.step()
+
+                # update progress bar
+                progress.set_postfix(loss="{:05.3f}".format(loss.data.numpy()[0]))
+                progress.update()
 
         writer.close()
 
