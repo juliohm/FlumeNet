@@ -4,11 +4,8 @@ from torch.nn import MSELoss, BCEWithLogitsLoss
 
 problem = VideoGenProblem("data/rgb", "data/rgb", cspace="RGB")
 
-m = problem.pastlen()
-n = problem.futurelen()
-c = problem.channels()
-
-model = CodecNet(m*c, n*c)
+model = CodecNet(problem.pastlen()*problem.channels(),
+                 problem.futurelen()*problem.channels())
 
 loss_fn = MSELoss() if problem.colorspace() == "RGB" else BCEWithLogitsLoss()
 
