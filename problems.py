@@ -1,3 +1,4 @@
+from os.path import exists
 from datautils import dataloader, splitXY
 from torch.optim import Adam
 
@@ -52,7 +53,14 @@ class VideoGenProblem(object):
         # choose Adam as the optimizer
         optimizer = Adam(model.parameters(), lr=lr)
 
-        writer = SummaryWriter("runs/{},{},lr={}".format(model.name(), self.colorspace(), lr))
+        # setup directory for TensorBoard summaries
+        basename = "runs/{},{},lr={}".format(model.name(), self.colorspace(), lr)
+        dirname, attempt = basename, 0
+        while exists(dirname):
+            attempt += 1
+            dirname = basename + " (" + str(attempt) + ")"
+
+        writer = SummaryWriter(dirname)
 
         for epoch in range(epochs):
             for (iteration, batch) in enumerate(traindata):
