@@ -66,6 +66,11 @@ class VideoGenProblem(object):
 
         writer = SummaryWriter(dirname)
 
+        # save hyperparameters for the run
+        with open(dirname+"/hyperparams.txt","w") as h:
+            for (pname, pval) in hyperparams.items():
+                h.write("{}: {}\n".format(pname,pval))
+
         progress = tqdm(total=epochs*len(traindata))
 
         for epoch in range(epochs):
