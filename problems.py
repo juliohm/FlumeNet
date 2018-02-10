@@ -1,33 +1,35 @@
+import numpy as np
 from os.path import exists
-from datautils import loadimages, splitXY
-from torch.optim import Adam
 from tqdm import tqdm
+from datautils import loadimages, FlumeData, splitXY
+from torch import Tensor
+from torch.autograd import Variable
+from torch.optim import Adam
 
 # TensorBoard imports
 from tensorboardX import SummaryWriter
 import torchvision.utils as vutils
 
-class VideoGenProblem(object):
+class VideoGenProblem:
+    """
+    A video generation problem.
+
+    Args:
+        traindirs: directories with training data
+        devdirs: directories with dev data
+        cspace: colorspace of frames (RGB or BW)
+        pinds: indices of past frames (features)
+        finds: indices of future frames (labels)
+    """
     def __init__(self, traindirs, devdirs, cspace="BW", pinds=[1,2,3], finds=[4]):
         self.traindirs = traindirs
         self.devdirs = devdirs
         self.cspace = cspace
-        self.pinds = pinds
-        self.finds = finds
+        self.pinds = [p-1 for p in pinds] # convert 1-based to 0-based indices
+        self.finds = [f-1 for f in finds] # convert 1-based to 0-based indices
 
     def colorspace(self):
         return self.cspace.upper()
-
-    def predictscheme(self):
-        # convert 1-based to 0-based indices
-        ps = [p-1 for p in self.pinds]
-        fs = [f-1 for f in self.finds]
-        return ps, fs
-
-    def horizon(self):
-        indmax = max(max(self.pinds), max(self.finds))
-        indmin = min(min(self.pinds), min(self.finds))
-        return indmax - indmin + 1
 
     def pastlen(self):
         return len(self.pinds)
@@ -36,20 +38,18 @@ class VideoGenProblem(object):
         return len(self.finds)
 
     def channels(self):
-        return 3 if self.cspace.upper() == "RGB" else 1
+        return 3 if self.colorspace() == "RGB" else 1
 
     def solve(self, model, loss_fn, hyperparams):
-        # retrieve prediction scheme (past and future frames)
-        pinds, finds = self.predictscheme()
-
         # retrieve hyperparameters
         lr     = hyperparams["lr"]
         epochs = hyperparams["epochs"]
         bsize  = hyperparams["bsize"]
 
         # load problem data from disk
-        traindata = loadimages(self.traindirs, nframes=self.horizon(), batch_size=bsize)
-        devdata   = loadimages(self.devdirs, nframes=self.horizon(), batch_size=bsize)
+        nframes   = max(self.finds) - min(self.pinds) + 1
+        traindata = loadimages(self.traindirs, nframes=nframes, batch_size=bsize)
+        devdata   = loadimages(self.devdirs, nframes=nframes, batch_size=bsize)
 
         # cycle the dev set with an iterator
         deviter = iter(devdata)
@@ -76,7 +76,7 @@ class VideoGenProblem(object):
         for epoch in range(epochs):
             for (iteration, batch) in enumerate(traindata):
                 # features and targets
-                X, Y = splitXY(batch, pinds, finds)
+                X, Y = splitXY(batch, self.pinds, self.finds)
 
                 # start clean
                 optimizer.zero_grad()
@@ -92,9 +92,10 @@ class VideoGenProblem(object):
                 # do the same for dev set
                 devbatch = next(deviter, None)
                 if devbatch is None:
+                    # reset iterator
                     deviter = iter(devdata)
                     devbatch = next(deviter)
-                Xdev, Ydev = splitXY(devbatch, pinds, finds)
+                Xdev, Ydev = splitXY(devbatch, self.pinds, self.finds)
                 Yhatdev = model(Xdev)
                 ydev = Ydev.view(Ydev.size(0), -1)
                 yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
@@ -127,4 +128,33 @@ class VideoGenProblem(object):
 
         writer.close()
 
-        return lossval, lossdevval
+        solution = VideoGenSolution(model, self.pinds, self.finds)
+
+        return solution, (lossval, lossdevval)
+
+class VideoGenSolution:
+    """
+    A solution to a video generation problem.
+    """
+    def __init__(self, model, pinds, finds):
+        self.model = model
+        self.pinds = pinds
+        self.finds = finds
+
+    def play(self, rundir):
+        nframes = max(self.finds) - min(self.pinds) + 1
+        data = FlumeData(rundir, nframes=nframes, augment=False)
+
+        # retrieve initial frames
+        imgs  = data[0]
+        pimgs = [imgs[i] for i in self.pinds]
+        fimgs = [imgs[i] for i in self.finds]
+
+        # convert to tensors with correct shape
+        X = np.concatenate(pimgs, axis=0)
+        X = Tensor(X[np.newaxis,...])
+
+        # forward into the net
+        Yhat = self.model(Variable(X))
+
+        return Yhat
