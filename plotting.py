@@ -7,7 +7,7 @@ font = {'family' : 'DejaVu Sans',
 
 plt.rc('font', **font)
 
-def film(solution, rundir):
+def movie(solution, rundir):
     # directory name for saving the movie
     paths = rundir.split('/')
     paths[0] = "movies"
@@ -28,7 +28,7 @@ def film(solution, rundir):
             imghat  = imghat.transpose([1,2,0])
         else:
             imgtrue = imgtrue[0,:,:]
-            imghat  = imghat[0,:,:]
+            imghat  = imghat[0,:,:] > 0.5
 
         fig, ax = plt.subplots(1,2, figsize=(20,20))
         plt.subplot(1,2,1)
