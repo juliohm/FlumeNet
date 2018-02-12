@@ -11,6 +11,9 @@ from torch.optim import Adam
 from tensorboardX import SummaryWriter
 import torchvision.utils as vutils
 
+# workaround for bug https://github.com/tqdm/tqdm/issues/481
+tqdm.monitor_interval = 0
+
 class VideoGenProblem:
     """
     A video generation problem.
