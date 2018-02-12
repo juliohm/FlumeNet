@@ -1,6 +1,7 @@
 import numpy as np
 from os.path import exists
 from tqdm import tqdm
+from collections import deque
 from datautils import loadimages, FlumeData, splitXY
 from torch import Tensor
 from torch.autograd import Variable
@@ -146,15 +147,29 @@ class VideoGenSolution:
         data = FlumeData(rundir, nframes=nframes, augment=False)
 
         # retrieve initial frames
-        imgs  = data[0]
-        pimgs = [imgs[i] for i in self.pinds]
-        fimgs = [imgs[i] for i in self.finds]
+        imgs = deque(data[0])
+        for t in range(min(self.finds)):
+            yield imgs[t], imgs[t]
 
-        # convert to tensors with correct shape
-        X = np.concatenate(pimgs, axis=0)
-        X = Tensor(X[np.newaxis,...])
+        # predict the future
+        for t in range(len(data)):
+            # features from the past
+            pimgs = [imgs[i] for i in self.pinds]
 
-        # forward into the net
-        Yhat = self.model(Variable(X))
+            # retrieve target for plotting purposes
+            fimgs = [data[t][i] for i in self.finds]
+            y = fimgs[0]
 
-        return Yhat
+            # convert to tensors with correct shape
+            X = np.concatenate(pimgs, axis=0)
+            X = Tensor(X[np.newaxis,...])
+
+            # propagate forward into the net
+            Yhat = self.model(Variable(X))
+            yhat = Yhat[0,:,:,:].data.numpy()
+
+            # advance time
+            imgs.popleft()
+            imgs.append(yhat)
+
+            yield y, yhat
