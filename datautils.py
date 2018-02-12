@@ -21,7 +21,7 @@ class FlumeData(Dataset):
         self.filenames = sorted(listdir(rundir))
 
     def __len__(self):
-        return len(self.filenames) - self.nframes - 1
+        return len(self.filenames) - self.nframes + 1
 
     def __getitem__(self, ind):
         imgs = []
