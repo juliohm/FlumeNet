@@ -1,6 +1,9 @@
 from torch.nn import Module, Sequential
 from torch.nn import Conv2d, ReLU
 
+def classname(model):
+    return model.__class__.__name__
+
 class CodecNet(Module):
     """
     A codec (i.e. code-decode) module.
@@ -18,6 +21,3 @@ class CodecNet(Module):
 
     def forward(self, x):
         return self.model(x)
-
-    def name(self):
-        return self.__class__.__name__

@@ -3,6 +3,7 @@ from os.path import exists
 from tqdm import tqdm
 from collections import deque
 from datautils import loadimages, FlumeData, splitXY
+from netmodels import classname
 from torch import Tensor
 from torch.autograd import Variable
 from torch.optim import Adam
@@ -55,14 +56,11 @@ class VideoGenProblem:
         traindata = loadimages(self.traindirs, nframes=nframes, batch_size=bsize)
         devdata   = loadimages(self.devdirs, nframes=nframes, batch_size=bsize)
 
-        # cycle the dev set with an iterator
-        deviter = iter(devdata)
-
         # choose Adam as the optimizer
         optimizer = Adam(model.parameters(), lr=lr)
 
         # setup directory for TensorBoard summaries
-        basename = "runs/{},{},lr={}".format(model.name(), self.colorspace(), lr)
+        basename = "runs/{},{}+{},lr={}".format(self.colorspace(), classname(model), classname(loss_fn), lr)
         dirname, attempt = basename, 0
         while exists(dirname):
             attempt += 1
@@ -75,7 +73,11 @@ class VideoGenProblem:
             for (pname, pval) in hyperparams.items():
                 h.write("{}: {}\n".format(pname,pval))
 
-        progress = tqdm(total=epochs*len(traindata))
+        # cycle the dev set with an iterator
+        nbatches = len(traindata)
+        deviter = iter(devdata)
+
+        progress = tqdm(total=epochs*nbatches)
 
         for epoch in range(epochs):
             for (iteration, batch) in enumerate(traindata):
@@ -105,18 +107,21 @@ class VideoGenProblem:
                 yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
                 lossdev = loss_fn(yhatdev, ydev)
 
+                # iteration number across epochs
+                uniqueiter = iteration + epoch*nbatches
+
                 # update TensorBoard summary
-                writer.add_scalar("loss/train", loss, iteration)
-                writer.add_scalar("loss/dev", lossdev, iteration)
-                if iteration % 10 == 0:
+                writer.add_scalar("loss/train", loss, uniqueiter)
+                writer.add_scalar("loss/dev", lossdev, uniqueiter)
+                if uniqueiter % 10 == 0:
                     truegrid = vutils.make_grid(Y.data, normalize=True, scale_each=True)
                     predgrid = vutils.make_grid(Yhat.data, normalize=True, scale_each=True)
                     truegrid = truegrid.numpy().transpose([1, 2, 0])
                     predgrid = predgrid.numpy().transpose([1, 2, 0])
-                    writer.add_image("images/actual", truegrid, iteration)
-                    writer.add_image("images/prediction", predgrid, iteration)
+                    writer.add_image("images/actual", truegrid, uniqueiter)
+                    writer.add_image("images/prediction", predgrid, uniqueiter)
                     for name, param in model.named_parameters():
-                        writer.add_histogram(name, param.clone().cpu().data.numpy(), iteration, bins="doane")
+                        writer.add_histogram(name, param.clone().cpu().data.numpy(), uniqueiter, bins="doane")
 
                 # compute gradients
                 loss.backward()
@@ -132,7 +137,7 @@ class VideoGenProblem:
 
         writer.close()
 
-        solution = VideoGenSolution(model, self.pinds, self.finds)
+        solution = VideoGenSolution(model, self.colorspace(), self.pinds, self.finds)
 
         return solution, (lossval, lossdevval)
 
@@ -140,10 +145,11 @@ class VideoGenSolution:
     """
     A solution to a video generation problem.
     """
-    def __init__(self, model, pinds, finds):
-        self.model = model
-        self.pinds = pinds
-        self.finds = finds
+    def __init__(self, model, cspace, pinds, finds):
+        self.model  = model
+        self.cspace = cspace
+        self.pinds  = pinds
+        self.finds  = finds
 
     def play(self, rundir):
         nframes = max(self.finds) - min(self.pinds) + 1
@@ -170,6 +176,10 @@ class VideoGenSolution:
             # propagate forward into the net
             Yhat = self.model(Variable(X))
             yhat = Yhat[0,:,:,:].data.numpy()
+
+            # threshold prediction in binary case
+            if self.cspace == "BW":
+                yhat = yhat > 0.5
 
             # advance time
             imgs.popleft()
