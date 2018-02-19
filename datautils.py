@@ -73,7 +73,7 @@ def loadimages(dirs, nframes=2, augment=True, **kwargs):
     """
     rundirs = sorted([path.join(dirs, d) for d in listdir(dirs)]) if type(dirs) is str else dirs
     dataset = MixedFlumeData(rundirs, nframes, augment)
-    return DataLoader(dataset, **kwargs)
+    return DataLoader(dataset, pin_memory=torch.cuda.is_available(), **kwargs)
 
 def splitXY(batch, pinds, finds):
     """

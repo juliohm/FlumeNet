@@ -91,7 +91,7 @@ class VideoGenProblem:
 
                 # move data to GPU
                 if torch.cuda.is_available():
-                    X, Y = X.cuda(), Y.cuda()
+                    X, Y = X.cuda(async=True), Y.cuda(async=True)
 
                 # start clean
                 optimizer.zero_grad()
@@ -112,7 +112,7 @@ class VideoGenProblem:
                     devbatch = next(deviter)
                 Xdev, Ydev = splitXY(devbatch, self.pinds, self.finds)
                 if torch.cuda.is_available():
-                    Xdev, Ydev = Xdev.cuda(), Ydev.cuda()
+                    Xdev, Ydev = Xdev.cuda(async=True), Ydev.cuda(async=True)
                 Yhatdev = model(Xdev)
                 ydev = Ydev.view(Ydev.size(0), -1)
                 yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
