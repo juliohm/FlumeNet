@@ -184,9 +184,13 @@ class VideoGenSolution:
             X = np.concatenate(pimgs, axis=0)
             X = Tensor(X[np.newaxis,...])
 
+            # move data to GPU
+            if torch.cuda.is_available():
+                X = X.cuda(async=True)
+
             # propagate forward into the net
             Yhat = self.model(Variable(X))
-            yhat = Yhat[0,:,:,:].data.numpy()
+            yhat = Yhat[0,:,:,:].data.cpu().numpy()
 
             # threshold prediction in binary case
             if self.cspace == "BW":
