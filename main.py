@@ -1,18 +1,18 @@
 from problems import VideoGenProblem
 from netmodels import CodecNet
-from torch.nn import MSELoss, BCEWithLogitsLoss
+from torch.nn import MSELoss, BCELoss, L1Loss
 
-problem = VideoGenProblem("data/rgb", ["data/rgb/Run 3"], cspace="RGB")
+problem = VideoGenProblem("data/bw", ["data/bw/Run 3"], cspace="BW")
 
 model = CodecNet(problem.pastlen()*problem.channels(),
-                 problem.futurelen()*problem.channels())
+                 problem.futurelen()*problem.channels(), cspace="BW")
 
-loss_fn = MSELoss() if problem.colorspace() == "RGB" else BCEWithLogitsLoss()
+loss_fn = MSELoss() if problem.colorspace() == "RGB" else BCELoss()
 
 hyperparams = {
-    "lr": 0.001,
-    "epochs": 1,
+    "lr": 0.01,
+    "epochs": 3,
     "bsize": 64
 }
 
-loss = problem.solve(model, loss_fn, hyperparams)
+solution, losses = problem.solve(model, loss_fn, hyperparams)
