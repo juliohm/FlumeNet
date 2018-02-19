@@ -4,6 +4,7 @@ from tqdm import tqdm
 from collections import deque
 from datautils import loadimages, FlumeData, splitXY
 from netmodels import classname
+import torch
 from torch import Tensor
 from torch.autograd import Variable
 from torch.optim import Adam
@@ -77,12 +78,21 @@ class VideoGenProblem:
         nbatches = len(traindata)
         deviter = iter(devdata)
 
+        # move model parameters to GPU
+        if torch.cuda.is_available():
+            model.cuda()
+
         progress = tqdm(total=epochs*nbatches)
 
         for epoch in range(epochs):
             for (iteration, batch) in enumerate(traindata):
                 # features and targets
                 X, Y = splitXY(batch, self.pinds, self.finds)
+
+                # move data to GPU
+                if torch.cuda.is_available():
+                    X = X.cuda()
+                    Y = Y.cuda()
 
                 # start clean
                 optimizer.zero_grad()
