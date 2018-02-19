@@ -91,8 +91,7 @@ class VideoGenProblem:
 
                 # move data to GPU
                 if torch.cuda.is_available():
-                    X = X.cuda()
-                    Y = Y.cuda()
+                    X, Y = X.cuda(), Y.cuda()
 
                 # start clean
                 optimizer.zero_grad()
@@ -112,6 +111,8 @@ class VideoGenProblem:
                     deviter = iter(devdata)
                     devbatch = next(deviter)
                 Xdev, Ydev = splitXY(devbatch, self.pinds, self.finds)
+                if torch.cuda.is_available():
+                    Xdev, Ydev = Xdev.cuda(), Ydev.cuda()
                 Yhatdev = model(Xdev)
                 ydev = Ydev.view(Ydev.size(0), -1)
                 yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
@@ -126,8 +127,8 @@ class VideoGenProblem:
                 if uniqueiter % 10 == 0:
                     truegrid = vutils.make_grid(Y.data, normalize=True, scale_each=True)
                     predgrid = vutils.make_grid(Yhat.data, normalize=True, scale_each=True)
-                    truegrid = truegrid.numpy().transpose([1, 2, 0])
-                    predgrid = predgrid.numpy().transpose([1, 2, 0])
+                    truegrid = truegrid.cpu().numpy().transpose([1, 2, 0])
+                    predgrid = predgrid.cpu().numpy().transpose([1, 2, 0])
                     writer.add_image("images/actual", truegrid, uniqueiter)
                     writer.add_image("images/prediction", predgrid, uniqueiter)
                     for name, param in model.named_parameters():
@@ -140,8 +141,8 @@ class VideoGenProblem:
                 optimizer.step()
 
                 # update progress bar
-                lossval = loss.data.numpy()[0]
-                lossdevval = lossdev.data.numpy()[0]
+                lossval = loss.data.cpu().numpy()[0]
+                lossdevval = lossdev.data.cpu().numpy()[0]
                 progress.set_postfix(loss="{:05.3f}".format(lossval), lossdev="{:05.3f}".format(lossdevval))
                 progress.update()
 
