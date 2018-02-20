@@ -3,8 +3,16 @@ from netmodels import CodecNet
 from torch.nn import MSELoss, BCELoss, L1Loss
 from plotting import movie
 
+# datasets
+traindirs = ["Run 1", "Run 2 - 1", "Run 2 - 2", "Run 3 - 2", "Run 4", "Run 5",
+             "Run 6 - 1", "Run 6 - 2", "Run 7 - 1", "Run 7 - 2"]
+devdirs   = ["Run 3 - 1"]
+
+traindirs = ["data/bw/"+tdir for tdir in traindirs]
+devdirs   = ["data/bw/"+ddir for ddir in devdirs]
+
 # define the problem
-problem = VideoGenProblem("data/bw", ["data/bw/Run 1"], cspace="BW")
+problem = VideoGenProblem(traindirs, devdirs, cspace="BW")
 
 # define the network model
 model = CodecNet(problem.pastlen()*problem.channels(),
