@@ -41,6 +41,7 @@ class FlumeNet(Module):
     def __init__(self, cspace="BW"):
         super(FlumeNet, self).__init__()
 
+        self.cspace = cspace
         self.channels = 3 if cspace == "RGB" else 1
 
         self.encoder = Sequential(
@@ -56,7 +57,7 @@ class FlumeNet(Module):
 
         self.fcs = Sequential(
             Linear(9216, 10000), ReLU(),
-            Linear(10000, 15000), ReLU()
+            Linear(10000, 15000)
         )
 
     def forward(self, x):
@@ -73,6 +74,9 @@ class FlumeNet(Module):
         encs = self.fcs(encs)
 
         # reshape to image shape (i.e. unflatten)
-        encs = encs.view(encs.size(0), 150, 100)
+        encs = encs.view(encs.size(0), 1, 150, 100)
 
-        return encs
+        if self.cspace == "BW":
+            return sigmoid(encs)
+        else:
+            return encs
