@@ -25,11 +25,8 @@ class CodecNet(Module):
         self.cspace = cspace
 
     def forward(self, x):
-        if self.cspace == "BW":
-            y = self.model(x)
-            return sigmoid(y)
-        else:
-            return self.model(x)
+        y = self.model(x)
+        return sigmoid(y) if self.cspace == "BW" else y
 
 class FlumeNet(Module):
     """
