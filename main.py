@@ -4,7 +4,7 @@ from torch.nn import MSELoss, BCELoss, L1Loss
 from plotting import movie
 
 # define the problem
-problem = VideoGenProblem("data/bw", ["data/bw/Run 3"], cspace="BW")
+problem = VideoGenProblem("data/bw", ["data/bw/Run 1"], cspace="BW")
 
 # define the network model
 model = CodecNet(problem.pastlen()*problem.channels(),
@@ -23,4 +23,4 @@ hyperparams = {
 solution, losses = problem.solve(model, loss_fn, hyperparams)
 
 # generate a video with the trained network
-movie(solution, "data/bw/Run 3")
+movie(solution, "data/bw/Run 1")
