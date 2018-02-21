@@ -1,6 +1,11 @@
 import os, errno
 import numpy as np
 import matplotlib.pyplot as plt
+from os import listdir
+from tqdm import tqdm
+
+# workaround for bug https://github.com/tqdm/tqdm/issues/481
+tqdm.monitor_interval = 0
 
 font = {'family' : 'DejaVu Sans',
         'weight' : 'bold',
@@ -20,6 +25,10 @@ def movie(solution, rundir):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+    # setup progress bar
+    nimgs = len(listdir(rundir))
+    progress = tqdm(total=nimgs)
 
     # save original and predicted frames
     for t, (imgtrue, imghat) in enumerate(solution.play(rundir)):
@@ -46,6 +55,8 @@ def movie(solution, rundir):
         plt.tight_layout()
         plt.savefig(moviedir+"/{:04}.png".format(t+1), bbox_inches="tight")
         plt.close()
+
+        progress.update()
 
 def diffplot(solution, rundir):
     # directory name for saving the diff plot
