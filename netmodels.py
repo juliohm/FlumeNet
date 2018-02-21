@@ -16,7 +16,7 @@ class CodecNet(Module):
         outchan: number of output channels
         cspace: color space (BW or RGB)
     """
-    def __init__(self, inchan, outchan, cspace="BW"):
+    def __init__(self, inchan, outchan, cspace):
         super(CodecNet, self).__init__()
         self.model = Sequential(
             Conv2d(inchan, 32, kernel_size=3, padding=1), ReLU(),
