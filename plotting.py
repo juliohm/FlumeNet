@@ -1,4 +1,5 @@
 import os, errno
+import numpy as np
 import matplotlib.pyplot as plt
 
 font = {'family' : 'DejaVu Sans',
@@ -45,3 +46,38 @@ def movie(solution, rundir):
         plt.tight_layout()
         plt.savefig(moviedir+"/{:04}.png".format(t+1), bbox_inches="tight")
         plt.close()
+
+def diffplot(solution, rundir):
+    # directory name for saving the diff plot
+    paths = rundir.split('/')
+    paths[0] = "diffplots"
+    diffdir = '/'.join(paths)
+
+    # create directory if it does not exist
+    try:
+        os.makedirs(diffdir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    trues, fakes = [], []
+    for (imgtrue, imghat) in solution.play(rundir):
+        trues.append(imgtrue)
+        fakes.append(imghat)
+
+    dtrues = np.diff(trues)
+    dfakes = np.diff(fakes)
+
+    dtrues = [np.sum(np.abs(d)) for d in dtrues]
+    dfakes = [np.sum(np.abs(d)) for d in dfakes]
+
+    X = np.array([dtrues, dfakes]).T
+    np.savetxt(diffdir+"/plot.dat", X, header="1st column = original, 2nd column = neural network")
+
+    fig = plt.figure(figsize=(20,20))
+    plt.plot(dtrues/dtrues[0], label="original")
+    plt.plot(dfakes/dfakes[0], label="neural network")
+    plt.xlabel("time step")
+    plt.ylabel("normalized difference")
+    plt.legend()
+    plt.savefig(diffdir+"/plot.png", bbox_inches="tight")
+    plt.close()
