@@ -54,14 +54,14 @@ class VideoGenProblem:
 
         # load problem data from disk
         nframes   = max(self.finds) - min(self.pinds) + 1
-        traindata = loadimages(self.traindirs, nframes=nframes, batch_size=bsize)
+        traindata = loadimages(self.traindirs, nframes=nframes, batch_size=bsize, shuffle=True)
         devdata   = loadimages(self.devdirs, nframes=nframes, batch_size=bsize)
 
         # choose Adam as the optimizer
         optimizer = Adam(model.parameters(), lr=lr)
 
         # setup directory for TensorBoard summaries
-        basename = "runs/{},{}+{},lr={}".format(self.colorspace(), classname(model), classname(loss_fn), lr)
+        basename = "runs/{},{}+{},bs={},lr={}".format(self.colorspace(), classname(model), classname(loss_fn), bsize, lr)
         dirname, attempt = basename, 0
         while exists(dirname):
             attempt += 1
