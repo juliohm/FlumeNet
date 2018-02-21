@@ -1,7 +1,7 @@
 from problems import VideoGenProblem
 from netmodels import CodeRegNet, TorricelliNet
 from torch.nn import MSELoss, BCELoss, L1Loss
-from plotting import movie
+from plotting import movie, diffplot
 
 # color space
 cspace = "BW"
@@ -34,5 +34,6 @@ hyperparams = {
 # solve the problem with the model
 solution, losses = problem.solve(model, loss_fn, hyperparams)
 
-# generate a video with the trained network
+# solution statistics
 movie(solution, devdirs[0])
+diffplot(solution, devdirs[0])
