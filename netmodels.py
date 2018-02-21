@@ -30,50 +30,42 @@ class CodecNet(Module):
 
 class FlumeNet(Module):
     """
-    An enconder followed by recurrent module.
+    An enconder followed by a convolutional regressor.
 
     Args:
+        pastlen: number of past frames
+        futurelen: number of future frames
         cspace: color space (BW or RGB)
     """
-    def __init__(self, cspace="BW"):
+    def __init__(self, pastlen, futurelen, cspace):
         super(FlumeNet, self).__init__()
 
-        self.cspace = cspace
-        self.channels = 3 if cspace == "RGB" else 1
+        # problem dimensions
+        P = pastlen
+        F = futurelen
+        C = 3 if cspace == "RGB" else 1
 
         self.encoder = Sequential(
-            Conv2d(self.channels, 32, kernel_size=3, padding=1), ReLU(),
-            MaxPool2d(2),
-            Conv2d(32, 64, kernel_size=3, padding=1), ReLU(),
-            MaxPool2d(2),
-            Conv2d(64, 128, kernel_size=3, padding=1), ReLU(),
-            MaxPool2d(2),
-            Conv2d(128, 256, kernel_size=2, stride=2), ReLU(),
-            MaxPool2d(2)
+            Conv2d(C, 64, kernel_size=3, padding=1), ReLU(),
+            Conv2d(64, 128, kernel_size=5, padding=2), ReLU(),
+            Conv2d(128, 10, kernel_size=5, padding=2)
         )
 
-        self.fcs = Sequential(
-            Linear(9216, 10000), ReLU(),
-            Linear(10000, 15000)
+        self.regressor = Sequential(
+            Conv2d(P*10, F*C, kernel_size=3, padding=1)
         )
+
+        # save attributes
+        self.cspace = cspace
+        self.P = P
+        self.F = F
+        self.C = C
 
     def forward(self, x):
-        nframes = int(x.shape[1] / self.channels)
-        frames = [x[:,i*self.channels:(i+1)*self.channels,:,:] for i in range(nframes)]
+        frames = [x[:,i*self.C:(i+1)*self.C,:,:] for i in range(self.P)]
+        encodings = [self.encoder(frame) for frame in frames] # encode
+        encodings = torch.cat(encodings, 1) # stack encodings
 
-        encs = [self.encoder(frame) for frame in frames] # encode
-        encs = [enc.view(enc.size(0), -1) for enc in encs] # flatten
+        y = self.regressor(encodings)
 
-        # stack features from all time steps
-        encs = torch.cat(encs, 1)
-
-        # forward into fully connected layers
-        encs = self.fcs(encs)
-
-        # reshape to image shape (i.e. unflatten)
-        encs = encs.view(encs.size(0), 1, 150, 100)
-
-        if self.cspace == "BW":
-            return sigmoid(encs)
-        else:
-            return encs
+        return sigmoid(y) if self.cspace == "BW" else y
