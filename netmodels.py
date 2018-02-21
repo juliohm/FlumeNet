@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from torch.nn import Module, Sequential
-from torch.nn import Linear, Conv2d, ReLU, MaxPool2d
+from torch.nn import Linear, Conv2d, ReLU, Tanh, MaxPool2d
 from torch.nn.functional import sigmoid
 
 def classname(model):
@@ -68,4 +68,40 @@ class FlumeNet(Module):
 
         y = self.regressor(encodings)
 
+        return sigmoid(y) if self.cspace == "BW" else y
+
+class TorricelliNet(Module):
+    """
+    Args:
+        pastlen: number of past frames
+        futurelen: number of future frames
+        cspace: color space (BW or RGB)
+    """
+    def __init__(self, pastlen, futurelen, cspace):
+        super(TorricelliNet, self).__init__()
+
+        # problem dimensions
+        P = pastlen
+        F = futurelen
+        C = 3 if cspace == "RGB" else 1
+
+        self.velocity = Sequential(
+            Conv2d(P*C, P*C, kernel_size=5, padding=2)
+        )
+
+        self.acceleration = Sequential(
+            Conv2d(P*C, P*C, kernel_size=5, padding=2), Tanh(),
+            Conv2d(P*C, P*C, kernel_size=5, padding=2)
+        )
+
+        self.predict = Sequential(
+            Conv2d(P*C, F*C, kernel_size=1)
+        )
+
+        self.cspace = cspace
+
+    def forward(self, x):
+        v = self.velocity(x)
+        a = self.acceleration(x)
+        y = self.predict(x + v + a/2)
         return sigmoid(y) if self.cspace == "BW" else y
