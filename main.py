@@ -35,4 +35,4 @@ hyperparams = {
 solution, losses = problem.solve(model, loss_fn, hyperparams)
 
 # generate a video with the trained network
-movie(solution, prefix+"Run 1")
+movie(solution, devdirs[0])
