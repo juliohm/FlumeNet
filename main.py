@@ -8,9 +8,9 @@ cspace = "BW"
 prefix = "data/bw/" if cspace == "BW" else "data/rgb/"
 
 # datasets
-traindirs = ["Run 1", "Run 2 - 1", "Run 2 - 2", "Run 3 - 2", "Run 4", "Run 5",
-             "Run 6 - 1", "Run 6 - 2", "Run 7 - 1", "Run 7 - 2"]
-devdirs   = ["Run 3 - 1"]
+traindirs = ["run1", "run2.1", "run2.2", "run3.2", "run4",
+             "run5", "run6.1", "run6.2", "run7.1", "run7.2"]
+devdirs   = ["run3.1"]
 
 traindirs = [prefix+tdir for tdir in traindirs]
 devdirs   = [prefix+ddir for ddir in devdirs]
