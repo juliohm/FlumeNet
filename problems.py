@@ -183,6 +183,7 @@ class VideoGenSolution:
             # convert to tensors with correct shape
             X = np.concatenate(pimgs, axis=0)
             X = Tensor(X[np.newaxis,...])
+            X = X.contiguous()
 
             # move data to GPU
             if torch.cuda.is_available():
