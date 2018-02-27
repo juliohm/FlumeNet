@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 from torch.nn import Module, Sequential
-from torch.nn import Conv2d, ReLU, Tanh
+from torch.nn import Conv2d, BatchNorm2d
+from torch.nn import ReLU, Tanh, Sigmoid
 from torch.nn.functional import sigmoid
 
 def classname(model):
@@ -65,17 +66,20 @@ class TorricelliNet(Module):
         C = 3 if cspace == "RGB" else 1
 
         self.velocity = Sequential(
-            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2), Tanh(),
+            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2),
+            BatchNorm2d(10*P*C), Tanh(),
             Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
         self.acceleration = Sequential(
-            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2), Tanh(),
+            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2),
+            BatchNorm2d(10*P*C), Tanh(),
             Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
         self.predict = Sequential(
-            Conv2d(P*C, F*C, kernel_size=1)
+            Conv2d(P*C, F*C, kernel_size=1),
+            BatchNorm2d(F*C), Sigmoid()
         )
 
         self.cspace = cspace
@@ -84,4 +88,4 @@ class TorricelliNet(Module):
         v = self.velocity(x)
         a = self.acceleration(x)
         y = self.predict(x + v + a/2)
-        return sigmoid(y) if self.cspace == "BW" else y
+        return y
