@@ -65,12 +65,13 @@ class TorricelliNet(Module):
         C = 3 if cspace == "RGB" else 1
 
         self.velocity = Sequential(
-            Conv2d(P*C, P*C, kernel_size=5, padding=2)
+            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2), Tanh(),
+            Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
         self.acceleration = Sequential(
-            Conv2d(P*C, P*C, kernel_size=5, padding=2), Tanh(),
-            Conv2d(P*C, P*C, kernel_size=5, padding=2)
+            Conv2d(P*C, 10*P*C, kernel_size=5, padding=2), Tanh(),
+            Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
         self.predict = Sequential(
