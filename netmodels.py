@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torch.nn import Module, Sequential
 from torch.nn import Conv2d, BatchNorm2d
-from torch.nn import ReLU, Tanh, Sigmoid
+from torch.nn import ReLU, Sigmoid
 from torch.nn.functional import sigmoid
 
 def classname(model):
@@ -67,13 +67,13 @@ class TorricelliNet(Module):
 
         self.velocity = Sequential(
             Conv2d(P*C, 10*P*C, kernel_size=5, padding=2),
-            BatchNorm2d(10*P*C), Tanh(),
+            BatchNorm2d(10*P*C), ReLU(),
             Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
         self.acceleration = Sequential(
             Conv2d(P*C, 10*P*C, kernel_size=5, padding=2),
-            BatchNorm2d(10*P*C), Tanh(),
+            BatchNorm2d(10*P*C), ReLU(),
             Conv2d(10*P*C, P*C, kernel_size=5, padding=2)
         )
 
