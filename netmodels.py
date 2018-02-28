@@ -52,7 +52,7 @@ class FlumeNet(Module):
             ConvTranspose2d(F*C, F*C, kernel_size=3, stride=2),
             BatchNorm2d(F*C), ReLU(),
             ConvTranspose2d(F*C, F*C, kernel_size=3, stride=2),
-            Flatten()
+            Flatten(), Sigmoid()
         )
 
         # save attributes
