@@ -1,16 +1,23 @@
 import torch
 import numpy as np
 from torch.nn import Module, Sequential
-from torch.nn import Conv2d, BatchNorm2d
+from torch.nn import Conv2d, BatchNorm2d, MaxPool2d
+from torch.nn import RNN, ConvTranspose2d
 from torch.nn import ReLU, Sigmoid
-from torch.nn.functional import sigmoid
 
 def classname(model):
     return model.__class__.__name__
 
-class CodeRegNet(Module):
+class Flatten(Module):
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
+class FlumeNet(Module):
     """
-    An enconder followed by a regressor.
+    An enconder followed by a recurrent module followed by a decoder.
 
     Args:
         pastlen: number of past frames
@@ -26,32 +33,64 @@ class CodeRegNet(Module):
         C = 3 if cspace == "RGB" else 1
 
         self.encoder = Sequential(
-            Conv2d(C, 64, kernel_size=3, padding=1), ReLU(),
-            Conv2d(64, 128, kernel_size=5, padding=2), ReLU(),
-            Conv2d(128, 10, kernel_size=5, padding=2)
+            Conv2d(C, 64, kernel_size=3, padding=1),
+            BatchNorm2d(64), ReLU(),
+            MaxPool2d(2),
+            Conv2d(64, 128, kernel_size=5, stride=5),
+            BatchNorm2d(128), ReLU(),
+            MaxPool2d(3),
+            Flatten()
         )
 
-        self.regressor = Sequential(
-            Conv2d(P*10, F*C, kernel_size=3, padding=1)
+        self.recurrence = Sequential(
+            RNN(input_size=5*3*128, hidden_size=20*20*C, num_layers=1)
+        )
+
+        self.decoder = Sequential(
+            ConvTranspose2d(F*C, F*C, kernel_size=3, stride=2),
+            BatchNorm2d(F*C), ReLU(),
+            ConvTranspose2d(F*C, F*C, kernel_size=3, stride=2),
+            BatchNorm2d(F*C), ReLU(),
+            ConvTranspose2d(F*C, F*C, kernel_size=3, stride=2),
+            Flatten()
         )
 
         # save attributes
-        self.cspace = cspace
         self.P = P
         self.F = F
         self.C = C
 
     def forward(self, x):
+        # encode frames
         frames = [x[:,i*self.C:(i+1)*self.C,:,:] for i in range(self.P)]
-        encodings = [self.encoder(frame) for frame in frames] # encode
-        encodings = torch.cat(encodings, 1) # stack encodings
+        encodings = [self.encoder(frame) for frame in frames]
 
-        y = self.regressor(encodings)
+        # stack sequence of encodings for RNN
+        encodings = [enc[np.newaxis,...] for enc in encodings]
+        encodings = torch.cat(encodings, 0)
 
-        return sigmoid(y) if self.cspace == "BW" else y
+        # pass through recurrent layers
+        encodings = self.recurrence(encodings)
+
+        # reshape hidden state to image format
+        hidden = encodings[1][0,:,:]
+        nbatch, nfeat = hidden.size()
+        w = int(np.sqrt(nfeat // self.C))
+        hidden = hidden.view(nbatch, self.C, w, w)
+
+        # decode to original size
+        output = self.decoder(hidden)
+        output = output[:,:150*100*self.C].contiguous()
+
+        # reshape and return
+        image = output.view(output.size(0), self.C, 150, 100)
+
+        return image
 
 class TorricelliNet(Module):
     """
+    A simple model inspired by Torricelli's equations of motion.
+
     Args:
         pastlen: number of past frames
         futurelen: number of future frames
@@ -81,8 +120,6 @@ class TorricelliNet(Module):
             Conv2d(P*C, F*C, kernel_size=1),
             BatchNorm2d(F*C), Sigmoid()
         )
-
-        self.cspace = cspace
 
     def forward(self, x):
         v = self.velocity(x)
