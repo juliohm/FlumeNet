@@ -17,7 +17,7 @@ class Flatten(Module):
 
 class SliceNet(Module):
     """
-    A model based on slices of the frames.
+    A recurrent model based on frame slices.
 
     Args:
         pastlen: number of past frames
