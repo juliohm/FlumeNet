@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-from torch.nn import Module, Sequential
+from torch.nn import Module, Sequential, ModuleList
 from torch.nn import Conv2d, BatchNorm2d, MaxPool2d
-from torch.nn import RNN, ConvTranspose2d
+from torch.nn import RNN, GRU, ConvTranspose2d
 from torch.nn import ReLU, Sigmoid
 
 def classname(model):
@@ -14,6 +14,72 @@ class Flatten(Module):
 
     def forward(self, x):
         return x.view(x.size(0), -1)
+
+class SliceNet(Module):
+    """
+    A model based on slices of the frames.
+
+    Args:
+        pastlen: number of past frames
+        futurelen: number of future frames
+        cspace: color space (BW or RGB)
+        nslice: number of slices to predict
+    """
+    def __init__(self, pastlen, futurelen, cspace, nslice=30):
+        super(SliceNet, self).__init__()
+
+        # problem dimensions
+        P = pastlen
+        F = futurelen
+        C = 3 if cspace == "RGB" else 1
+
+        self.fwdtime = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
+        self.fillgap = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
+
+        # save attributes
+        self.P = P
+        self.F = F
+        self.C = C
+        self.nslice = nslice
+
+    def forward(self, x):
+        # retrieve frames
+        frames = [x[:,i*self.C:(i+1)*self.C,:,:] for i in range(self.P)]
+
+        # spacing between horizontal slices
+        dx = 150 // self.nslice
+
+        # run prediction forward in time for each slice
+        tslices = []
+        for s in range(self.nslice):
+            slices = [frame[:,:,s*dx,:].contiguous() for frame in frames]
+            flattened = [s.view(s.size(0), -1) for s in slices]
+
+            # stack slices from different frames for recurrence in time
+            augmented = [s[np.newaxis,...] for s in flattened]
+            stacked = torch.cat(augmented, 0)
+
+            # forward pass in time
+            _, hidden = self.fwdtime[s](stacked)
+
+            # save time prediction
+            tslices.append(hidden)
+
+
+        # fill in the gaps between the horizontal slices
+        allslices = []
+        for s in range(self.nslice):
+            x = tslices[s]
+            allslices.append(x)
+            for _ in range(dx-1):
+                __, x = self.fillgap[s](x)
+                allslices.append(x)
+
+        # reshape slices to image format
+        imgslices = [s.view(s.size(1), self.C, 1, 100) for s in allslices]
+        image = torch.cat(imgslices, 2)
+
+        return image
 
 class FlumeNet(Module):
     """
