@@ -4,6 +4,7 @@ from torch.nn import Module, Sequential, ModuleList
 from torch.nn import Conv2d, BatchNorm2d, MaxPool2d
 from torch.nn import RNN, GRU, ConvTranspose2d
 from torch.nn import ReLU, Sigmoid
+import torch.nn.functional as F
 
 def classname(model):
     return model.__class__.__name__
@@ -63,7 +64,7 @@ class SliceNet(Module):
             _, hidden = self.fwdtime[s](stacked)
 
             # save time prediction
-            tslices.append(hidden)
+            tslices.append(F.sigmoid(hidden))
 
 
         # fill in the gaps between the horizontal slices
@@ -73,7 +74,7 @@ class SliceNet(Module):
             allslices.append(x)
             for _ in range(dx-1):
                 __, x = self.fillgap[s](x)
-                allslices.append(x)
+                allslices.append(F.sigmoid(x))
 
         # reshape slices to image format
         imgslices = [s.view(s.size(1), self.C, 1, 100) for s in allslices]
