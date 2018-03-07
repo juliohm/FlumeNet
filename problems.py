@@ -100,9 +100,7 @@ class VideoGenProblem:
                 Yhat = model(X)
 
                 # compute loss
-                y    = Y.view(Y.size(0), -1)
-                yhat = Yhat.view(Yhat.size(0), -1)
-                loss = loss_fn(yhat, y)
+                loss = loss_fn(Yhat, Y)
 
                 # do the same for dev set
                 devbatch = next(deviter, None)
@@ -114,9 +112,7 @@ class VideoGenProblem:
                 if torch.cuda.is_available():
                     Xdev, Ydev = Xdev.cuda(async=True), Ydev.cuda(async=True)
                 Yhatdev = model(Xdev)
-                ydev = Ydev.view(Ydev.size(0), -1)
-                yhatdev = Yhatdev.view(Yhatdev.size(0), -1)
-                lossdev = loss_fn(yhatdev, ydev)
+                lossdev = loss_fn(Yhatdev, Ydev)
 
                 # iteration number across epochs
                 uniqueiter = iteration + epoch*nbatches
