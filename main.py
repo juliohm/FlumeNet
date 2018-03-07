@@ -1,5 +1,5 @@
 from problems import VideoGenProblem
-from netmodels import CodeRegNet, TorricelliNet
+from netmodels import TorricelliNet, SliceNet
 from torch.nn import MSELoss, BCELoss, L1Loss
 from plotting import movie, diffplot
 
@@ -19,7 +19,6 @@ devdirs   = [prefix+ddir for ddir in devdirs]
 problem = VideoGenProblem(traindirs, devdirs, cspace=cspace, pinds=[1,2,3], finds=[4])
 
 # define the network model
-# model = CodeRegNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
 model = TorricelliNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
 
 # define the loss criterion
