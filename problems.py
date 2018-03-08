@@ -178,7 +178,7 @@ class VideoGenSolution:
 
             # convert to tensors with correct shape
             X = np.concatenate(pimgs, axis=0)
-            X = Tensor(X[np.newaxis,...])
+            X = Tensor(X).unsqueeze(0)
             X = X.contiguous()
 
             # move data to GPU
