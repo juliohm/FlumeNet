@@ -191,7 +191,7 @@ class VideoGenSolution:
 
             # threshold prediction in binary case
             if self.cspace == "BW":
-                yhat = (yhat > 0.5).astype('float')
+                yhat = (yhat > 0.5).astype('float32')
 
             # advance time
             imgs.popleft()
