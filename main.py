@@ -2,10 +2,18 @@ from problems import VideoGenProblem
 from netmodels import TorricelliNet, SliceNet
 from torch.nn import MSELoss, BCELoss, L1Loss
 from plotting import movie, diffplot
+from losses import TVLoss
 
 # color space
-cspace = "BW"
-prefix = "data/bw/" if cspace == "BW" else "data/rgb/"
+cspace = "RGB"
+
+# data directory
+if cspace == "BW":
+    prefix = "data/bw/"
+elif cspace == "GRAY":
+    prefix = "data/gray/"
+else:
+    prefix = "data/rgb/"
 
 # datasets
 traindirs = ["run1", "run2.1", "run2.2", "run3.2", "run4",
@@ -19,14 +27,15 @@ devdirs   = [prefix+ddir for ddir in devdirs]
 problem = VideoGenProblem(traindirs, devdirs, cspace=cspace, pinds=[1,2,3], finds=[4])
 
 # define the network model
-model = TorricelliNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
+# model = TorricelliNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
+model = SliceNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
 
 # define the loss criterion
-loss_fn = MSELoss() if problem.colorspace() == "RGB" else BCELoss()
+loss_fn = MSELoss() if problem.colorspace() == "RGB" else TVLoss(cspace)
 
 hyperparams = {
     "lr": 0.01,
-    "epochs": 3,
+    "epochs": 20,
     "bsize": 64
 }
 
