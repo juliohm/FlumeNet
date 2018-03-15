@@ -2,9 +2,8 @@ import torch
 import numpy as np
 from torch.nn import Module, Sequential, ModuleList
 from torch.nn import Conv2d, BatchNorm2d, MaxPool2d
-from torch.nn import RNN, GRU, ConvTranspose2d
+from torch.nn import Linear, RNN, GRU, ConvTranspose2d
 from torch.nn import ReLU, Sigmoid
-import torch.nn.functional as F
 
 def classname(model):
     return model.__class__.__name__
@@ -37,6 +36,9 @@ class SliceNet(Module):
         self.fwdtime = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
         self.fillgap = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
 
+        self.predtime = Sequential(Linear(C*100, C*100), Sigmoid())
+        self.predgap  = Sequential(Linear(C*100, C*100), Sigmoid())
+
         # save attributes
         self.P = P
         self.F = F
@@ -64,7 +66,7 @@ class SliceNet(Module):
             _, hidden = self.fwdtime[s](stacked)
 
             # save time prediction
-            tslices.append(F.sigmoid(hidden))
+            tslices.append(self.predtime(hidden))
 
 
         # fill in the gaps between the horizontal slices
@@ -73,8 +75,9 @@ class SliceNet(Module):
             x = tslices[s]
             allslices.append(x)
             for _ in range(dx-1):
-                __, x = self.fillgap[s](x)
-                allslices.append(F.sigmoid(x))
+                __, hidden = self.fillgap[s](x)
+                x = self.predgap(hidden)
+                allslices.append(x)
 
         # reshape slices to image format
         imgslices = [s.view(s.size(1), self.C, 1, 100) for s in allslices]
