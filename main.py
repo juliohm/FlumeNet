@@ -1,8 +1,7 @@
 from problems import VideoGenProblem
 from netmodels import TorricelliNet, SliceNet
-from torch.nn import MSELoss, BCELoss, L1Loss
-from plotting import movie, diffplot
 from losses import TVLoss
+from plotting import movie, diffplot
 
 # color space
 cspace = "RGB"

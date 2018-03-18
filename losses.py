@@ -9,6 +9,8 @@ class TVLoss(Module):
             self.loss = BCELoss()
         elif cspace == "GRAY":
             self.loss = L1Loss()
+        elif cspace == "FLOW":
+            self.loss = L1Loss()
         else:
             self.loss = MSELoss()
 
