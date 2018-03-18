@@ -2,7 +2,7 @@ import torch
 from torch.nn import Module, MSELoss, L1Loss, BCELoss
 
 class TVLoss(Module):
-    def __init__(self, cspace):
+    def __init__(self, cspace, beta=0.01):
         super(TVLoss, self).__init__()
 
         if cspace == "BW":
@@ -11,6 +11,8 @@ class TVLoss(Module):
             self.loss = L1Loss()
         else:
             self.loss = MSELoss()
+
+        self.beta = beta
 
     def forward(self, yhat, y):
         bsize, chan, height, width = y.size()
@@ -23,4 +25,4 @@ class TVLoss(Module):
 
         E = sum(errors) / height / bsize
 
-        return self.loss(yhat, y) + 0.01*E
+        return self.loss(yhat, y) + self.beta*E

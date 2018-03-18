@@ -12,6 +12,8 @@ if cspace == "BW":
     prefix = "data/bw/"
 elif cspace == "GRAY":
     prefix = "data/gray/"
+elif cspace == "FLOW":
+    prefix = "data/flow/"
 else:
     prefix = "data/rgb/"
 
@@ -27,15 +29,14 @@ devdirs   = [prefix+ddir for ddir in devdirs]
 problem = VideoGenProblem(traindirs, devdirs, cspace=cspace, pinds=[1,2,3], finds=[4])
 
 # define the network model
-# model = TorricelliNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
-model = SliceNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
+model = TorricelliNet(problem.pastlen(), problem.futurelen(), problem.colorspace())
 
 # define the loss criterion
-loss_fn = MSELoss() if problem.colorspace() == "RGB" else TVLoss(cspace)
+loss_fn = TVLoss(cspace)
 
 hyperparams = {
     "lr": 0.01,
-    "epochs": 20,
+    "epochs": 3,
     "bsize": 64
 }
 
