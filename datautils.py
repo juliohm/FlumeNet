@@ -32,7 +32,10 @@ class FlumeData(Dataset):
             else:
                 img = np.asarray(imread(fname))
             img = img if img.ndim == 3 else img[...,np.newaxis]
-            img = np.float32(np.transpose(img, [2, 0, 1]) / 255)
+            if fname[-4:] == ".npy":
+                img = np.float32(np.transpose(img, [2, 0, 1]) / 1700 + 10/17)
+            else:
+                img = np.float32(np.transpose(img, [2, 0, 1]) / 255)
             imgs.append(img)
 
         if self.augment and np.random.rand() > 0.5:

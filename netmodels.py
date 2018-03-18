@@ -25,19 +25,28 @@ class SliceNet(Module):
         cspace: color space (BW or RGB)
         nslice: number of slices to predict
     """
-    def __init__(self, pastlen, futurelen, cspace, nslice=30):
+    def __init__(self, pastlen, futurelen, cspace, nslice=50):
         super(SliceNet, self).__init__()
 
         # problem dimensions
         P = pastlen
         F = futurelen
-        C = 3 if cspace == "RGB" else 1
+        if cspace == "RGB":
+            C = 3
+        elif cspace == "FLOW":
+            C = 2
+        else:
+            C = 1
 
         self.fwdtime = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
         self.fillgap = ModuleList([GRU(input_size=C*100, hidden_size=C*100) for s in range(nslice)])
 
-        self.predtime = Sequential(Linear(C*100, C*100), Sigmoid())
-        self.predgap  = Sequential(Linear(C*100, C*100), Sigmoid())
+        if cspace == "FLOW":
+            self.predtime = Sequential(Linear(C*100, C*100))
+            self.predgap  = Sequential(Linear(C*100, C*100))
+        else:
+            self.predtime = Sequential(Linear(C*100, C*100), Sigmoid())
+            self.predgap  = Sequential(Linear(C*100, C*100), Sigmoid())
 
         # save attributes
         self.P = P

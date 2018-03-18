@@ -25,7 +25,7 @@ def flowbatch2mag(flowbatch):
     n = flowbatch.size(0)
     mags = []
     for i in range(n):
-        flow = flowbatch[i,:,:,:].cpu().numpy().transpose([1, 2, 0])
+        flow = np.copy(flowbatch[i,:,:,:].cpu().numpy().transpose([1, 2, 0]))
         mag = flow2mag(flow).transpose([2, 0, 1])
         mag = mag[np.newaxis,...]
         mags.append(mag)
