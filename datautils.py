@@ -26,7 +26,11 @@ class FlumeData(Dataset):
     def __getitem__(self, ind):
         imgs = []
         for i in range(ind, ind + self.nframes):
-            img = np.asarray(imread(path.join(self.rundir, self.filenames[i])))
+            fname = path.join(self.rundir, self.filenames[i])
+            if fname[-4:] == ".npy":
+                img = np.load(fname)
+            else:
+                img = np.asarray(imread(fname))
             img = img if img.ndim == 3 else img[...,np.newaxis]
             img = np.float32(np.transpose(img, [2, 0, 1]) / 255)
             imgs.append(img)

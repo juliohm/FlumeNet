@@ -3,6 +3,7 @@ from os.path import exists
 from tqdm import tqdm
 from collections import deque
 from datautils import loadimages, FlumeData, splitXY
+from visionutils import flowbatch2mag
 from netmodels import classname
 import torch
 from torch import Tensor
@@ -44,7 +45,12 @@ class VideoGenProblem:
         return len(self.finds)
 
     def channels(self):
-        return 3 if self.colorspace() == "RGB" else 1
+        if self.colorspace() == "RGB":
+            return 3
+        elif self.colorspace() == "FLOW":
+            return 2
+        else:
+            return 1
 
     def solve(self, model, loss_fn, hyperparams):
         # retrieve hyperparameters
@@ -121,8 +127,10 @@ class VideoGenProblem:
                 writer.add_scalar("loss/train", loss, uniqueiter)
                 writer.add_scalar("loss/dev", lossdev, uniqueiter)
                 if uniqueiter % 10 == 0:
-                    truegrid = vutils.make_grid(Y.data, normalize=True, scale_each=True)
-                    predgrid = vutils.make_grid(Yhat.data, normalize=True, scale_each=True)
+                    truegrid = flowbatch2mag(Y.data) if self.colorspace() == "FLOW" else Y.data
+                    predgrid = flowbatch2mag(Yhat.data) if self.colorspace() == "FLOW" else Yhat.data
+                    truegrid = vutils.make_grid(truegrid, normalize=True, scale_each=True)
+                    predgrid = vutils.make_grid(predgrid, normalize=True, scale_each=True)
                     truegrid = truegrid.cpu().numpy().transpose([1, 2, 0])
                     predgrid = predgrid.cpu().numpy().transpose([1, 2, 0])
                     writer.add_image("images/actual", truegrid, uniqueiter)

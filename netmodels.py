@@ -172,7 +172,12 @@ class TorricelliNet(Module):
         # problem dimensions
         P = pastlen
         F = futurelen
-        C = 3 if cspace == "RGB" else 1
+        if cspace == "RGB":
+            C = 3
+        elif cspace == "FLOW":
+            C = 2
+        else:
+            C = 1
 
         self.velocity = Sequential(
             Conv2d(P*C, 10*P*C, kernel_size=5, padding=2),
@@ -187,12 +192,16 @@ class TorricelliNet(Module):
         )
 
         self.predict = Sequential(
-            Conv2d(P*C, F*C, kernel_size=1),
-            BatchNorm2d(F*C), Sigmoid()
+            Conv2d(P*C, F*C, kernel_size=1)
         )
+
+        self.nonlinearity = Sequential(BatchNorm2d(F*C), Sigmoid())
+
+        # save color space
+        self.cspace = cspace
 
     def forward(self, x):
         v = self.velocity(x)
         a = self.acceleration(x)
         y = self.predict(x + v + a/2)
-        return y
+        return y if self.cspace == "FLOW" else self.nonlinearity(y)
