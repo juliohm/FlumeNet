@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import listdir
 from tqdm import tqdm
+from visionutils import flow2mag
 
 # workaround for bug https://github.com/tqdm/tqdm/issues/481
 tqdm.monitor_interval = 0
@@ -14,14 +15,19 @@ font = {'family' : 'DejaVu Sans',
 plt.rc('font', **font)
 
 def movie(solution, rundir):
-    # directory name for saving the movie
+    # directory where to save the movie
     paths = rundir.split('/')
     paths[0] = "movies"
     moviedir = '/'.join(paths)
 
+    # directory where to save the optical flow
+    paths[0] = "flows"
+    flowdir = '/'.join(paths)
+
     # create directory if it does not exist
     try:
         os.makedirs(moviedir)
+        os.makedirs(flowdir)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
@@ -36,6 +42,12 @@ def movie(solution, rundir):
         if imgtrue.shape[0] == 3: # RGB
             imgtrue = imgtrue.transpose([1,2,0])
             imghat  = imghat.transpose([1,2,0])
+        if imgtrue.shape[0] == 2: # FLOW
+            flowtrue = np.copy(imgtrue.transpose([1,2,0]))
+            flowhat  = np.copy(imghat.transpose([1,2,0]))
+            np.save(flowdir+"/{:04}.npy".format(t+1), flowhat)
+            imgtrue = flow2mag(flowtrue)
+            imghat  = flow2mag(flowhat)
         else:
             imgtrue = imgtrue[0,:,:]
             imghat  = imghat[0,:,:]
