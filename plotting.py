@@ -1,4 +1,4 @@
-import os, errno
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from os import listdir
@@ -25,12 +25,8 @@ def movie(solution, rundir):
     flowdir = '/'.join(paths)
 
     # create directory if it does not exist
-    try:
-        os.makedirs(moviedir)
-        os.makedirs(flowdir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    pathlib.Path(moviedir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(flowdir).mkdir(parents=True, exist_ok=True)
 
     # setup progress bar
     nimgs = len(listdir(rundir))
@@ -77,11 +73,8 @@ def diffplot(solution, rundir):
     diffdir = '/'.join(paths)
 
     # create directory if it does not exist
-    try:
-        os.makedirs(diffdir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    pathlib.Path(diffdir).mkdir(parents=True, exist_ok=True)
+
     trues, fakes = [], []
     for (imgtrue, imghat) in solution.play(rundir):
         trues.append(imgtrue)
