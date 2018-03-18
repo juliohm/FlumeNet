@@ -60,3 +60,19 @@ for rundir in sorted(os.listdir(indir)):
         im2w = warp_flow(im1, flow)
 #         im2w = 255.*(im2w > 128) # make sure the image is binary
         cv2.imwrite(warpfnames[t], im2w)
+
+# print min/max flow for normalization during training
+IMIN =  np.inf
+IMAX = -np.inf
+for rundir in sorted(os.listdir(outdir)):
+    d = outdir+rundir
+    for fname in sorted(os.listdir(d)):
+        ffname = d+"/"+fname
+        img = np.load(ffname)
+        imin, imax = img.min(), img.max()
+        if imin < IMIN:
+            IMIN = imin
+        if imax > IMAX:
+            IMAX = imax
+
+print(IMIN, IMAX)
